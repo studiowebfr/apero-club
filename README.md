@@ -21,11 +21,19 @@ Le site tourne sur [http://localhost:3000](http://localhost:3000).
 
 ## Variables d'environnement
 
-Voir `.env.local.example`. Trois variables :
+Voir `.env.local.example`. Deux variables :
 
-- `RESEND_API_KEY` — clé API [Resend](https://resend.com), pour l'envoi du formulaire de contact (`/nous-trouver`). Sans elle, le formulaire répond poliment que l'envoi n'est pas encore configuré, il ne casse jamais silencieusement.
-- `CONTACT_EMAIL` — l'adresse qui reçoit les messages du formulaire.
-- `NEXT_PUBLIC_SITE_URL` — l'URL de production, une fois le nom de domaine acheté. Utilisée par le sitemap, le JSON-LD et les images Open Graph.
+- `NEXT_PUBLIC_FORMSPREE_ID` — identifiant du formulaire [Formspree](https://formspree.io), pour l'envoi du formulaire de contact (`/nous-trouver`). Le site est un export 100% statique (GitHub Pages), donc pas de route API Next.js pour envoyer l'e-mail : Formspree fait ce travail à la place. Sans identifiant, le formulaire répond poliment que l'envoi n'est pas encore configuré, il ne casse jamais silencieusement.
+- `NEXT_PUBLIC_SITE_URL` — l'URL de production. Utilisée par le sitemap, le JSON-LD et les images Open Graph.
+
+Ces variables sont lues **au moment du build** (site statique oblige) : en local via `.env.local`, et en production via les secrets du workflow GitHub Actions (`Settings → Secrets and variables → Actions` sur le dépôt, secret `NEXT_PUBLIC_FORMSPREE_ID`).
+
+### Configurer Formspree
+
+1. Crée un compte sur [formspree.io](https://formspree.io) et un formulaire.
+2. Récupère son identifiant (dans l'URL du endpoint : `https://formspree.io/f/xxxxxxx` → `xxxxxxx`).
+3. Ajoute-le comme secret GitHub Actions `NEXT_PUBLIC_FORMSPREE_ID` sur le dépôt, et en local dans `.env.local`.
+4. Dans les réglages du formulaire Formspree, indique l'adresse e-mail qui doit recevoir les messages.
 
 ## Modifier le contenu
 
@@ -89,26 +97,47 @@ composant `src/components/ui/GradientScene.tsx`. Voir
 journée volets ouverts) : toute la direction artistique repose sur le
 contraste de l'ambre sur le fond nuit.
 
-## Déployer sur Vercel
+## Déploiement — GitHub Pages
 
-1. Pousse le dépôt sur GitHub.
-2. Importe-le sur [vercel.com/new](https://vercel.com/new).
-3. Renseigne les variables d'environnement du fichier `.env.local` dans
-   les réglages du projet Vercel (`Settings → Environment Variables`).
-4. Déploie. Chaque page est pré-rendue statiquement (sauf `/api/contact`),
-   donc les temps de build et de réponse restent très courts.
-5. Une fois le nom de domaine branché, mets à jour `NEXT_PUBLIC_SITE_URL`
-   avec l'URL définitive et redéploie.
+Le site est publié automatiquement sur **https://studiowebfr.github.io/apero-club/**
+à chaque push sur `main`, via `.github/workflows/deploy.yml` (GitHub
+Actions → GitHub Pages). Rien à faire manuellement : un `git push` suffit,
+le site rebuild et se redéploie tout seul en 1 à 2 minutes.
+
+Le suivi du déploiement se fait dans l'onglet **Actions** du dépôt GitHub.
+
+Points techniques propres à cet hébergement (déjà en place, pour mémoire) :
+
+- `next.config.ts` exporte le site en HTML/CSS/JS statique (`output: "export"`), avec un `basePath` `/apero-club` appliqué uniquement en CI (`GITHUB_ACTIONS=true`) — en local, le site tourne toujours à la racine.
+- Pas de route API : le formulaire de contact passe par Formspree (voir plus haut).
+- `public/.nojekyll` empêche GitHub Pages d'ignorer le dossier `_next`.
+
+### Passer sur un nom de domaine perso
+
+1. Achète le domaine, pointe-le vers GitHub Pages (voir la doc GitHub :
+   *"Managing a custom domain for your GitHub Pages site"*).
+2. Mets à jour `NEXT_PUBLIC_SITE_URL` (secret GitHub Actions) et le
+   `basePath`/`assetPrefix` dans `next.config.ts` (retire-les : un domaine
+   perso sert le site à la racine, plus besoin de préfixe).
+
+### Si un jour il faut repasser sur un hébergement avec serveur (Vercel...)
+
+Retire `output: "export"` de `next.config.ts`, remets une route
+`src/app/api/contact/route.ts` (voir l'historique git avant ce commit
+pour un exemple avec Resend) si tu préfères gérer l'envoi toi-même plutôt
+que Formspree, et déploie normalement — tout le reste du code est
+compatible tel quel.
 
 ## Qualité
 
 - `npm run lint` — ESLint (Next.js + règles React strictes).
 - `npx tsc --noEmit` — vérification des types.
-- `npm run build` — build de production ; toutes les pages sont
-  statiques à l'exception de la route API du formulaire.
+- `npm run build` — build de production ; génère le dossier `out/` prêt à
+  déployer (toutes les pages sont statiques).
 
 ## Ce qu'il reste à faire avant la mise en ligne
 
+- Configurer Formspree (voir plus haut) pour que le formulaire de contact envoie vraiment des e-mails.
 - Compléter `src/content/site.ts` (téléphone, e-mail, Instagram, informations société).
 - Faire confirmer les horaires par le bar (`src/content/horaires.ts`).
 - Faire relire et valider le texte de `src/content/histoire.ts` par Barney et Jordan.

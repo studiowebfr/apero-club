@@ -8,6 +8,12 @@ import { GlassCard } from "@/components/ui/GlassCard";
 
 type Statut = "idle" | "envoi" | "succes" | "erreur";
 
+// Le site est un export statique (GitHub Pages) : pas de serveur pour une
+// route API. Le formulaire poste directement à Formspree, qui relaie par
+// e-mail. Sans identifiant configuré, on l'annonce clairement plutôt que
+// de laisser le formulaire échouer en silence.
+const FORMSPREE_ID = process.env.NEXT_PUBLIC_FORMSPREE_ID;
+
 export function ContactForm() {
   const [statut, setStatut] = useState<Statut>("idle");
   const [erreurServeur, setErreurServeur] = useState<string | null>(null);
@@ -20,18 +26,28 @@ export function ContactForm() {
   } = useForm<ContactFormValues>({ resolver: zodResolver(contactSchema) });
 
   async function onSubmit(values: ContactFormValues) {
+    if (!FORMSPREE_ID) {
+      setStatut("erreur");
+      setErreurServeur("Le formulaire n'est pas encore configuré. Écris directement à contact@... en attendant.");
+      return;
+    }
+
     setStatut("envoi");
     setErreurServeur(null);
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          name: values.nom,
+          email: values.email,
+          telephone: values.telephone || undefined,
+          _subject: `[Apéro Club] ${values.objet} — ${values.nom}`,
+          objet: values.objet,
+          message: values.message,
+        }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "L'envoi a échoué.");
-      }
+      if (!res.ok) throw new Error("L'envoi a échoué.");
       setStatut("succes");
       reset();
     } catch (e) {

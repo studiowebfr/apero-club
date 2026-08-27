@@ -61,10 +61,12 @@ export const site = {
   },
 } as const;
 
-// URL de production. À remplacer par le nom de domaine définitif une fois
-// acheté — utilisée pour le sitemap, le JSON-LD et les images Open Graph.
+// URL de production. Le site est publié sur GitHub Pages ; remplace cette
+// valeur par le nom de domaine définitif une fois acheté (et mets à jour
+// NEXT_PUBLIC_SITE_URL dans le secret GitHub Actions correspondant) —
+// utilisée pour le sitemap, le JSON-LD et les images Open Graph.
 export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://apero-club-besancon.fr";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://studiowebfr.github.io/apero-club";
 
 export function adresseComplete(): string {
   const { rue, codePostal, ville } = site.adresse;

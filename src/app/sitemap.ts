@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/content/site";
 
+export const dynamic = "force-static";
+
 const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/la-carte", priority: 0.9, changeFrequency: "weekly" },
