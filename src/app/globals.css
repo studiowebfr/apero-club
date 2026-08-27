@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette Apéro Club — voir BRIEF §4. Ratio d'usage cible : 80% nuit,
+     14% ivoire, 5% ambre, 1% bleu. */
+  --color-nuit: #0a0e14;
+  --color-nuit-surface: #121721;
+  --color-verre: rgba(255, 255, 255, 0.06);
+  --color-verre-bord: rgba(255, 255, 255, 0.14);
+  --color-ambre-tamise: #c9822e;
+  --color-ambre-clair: #f0c38a;
+  --color-ivoire: #ece6dc;
+  --color-gris-perle: #8b8f98;
+  --color-bleu-action: #3b6fe0;
+
+  --font-display: var(--font-bricolage), "Arial Narrow", sans-serif;
+  --font-corps: var(--font-public-sans), system-ui, sans-serif;
+
+  --breakpoint-xs: 22.5rem;
+
+  --animate-marquee: marquee 28s linear infinite;
+}
+
+:root {
+  /* Voiles opaques sous le flou des cartes de verre (règle de contraste
+     non négociable, voir BRIEF §4). Deux niveaux : une carte posée sur
+     une photo a besoin d'un voile beaucoup plus couvrant qu'une carte sur
+     fond nuit uni, sans quoi le texte devient illisible au-dessus des
+     zones claires de l'image (vérifié au contrastomètre : 70% ne suffit
+     pas, il faut ~87% minimum dans le pire cas). */
+  --voile-carte-photo: rgba(18, 23, 33, 0.9);
+  --voile-carte-unie: rgba(18, 23, 33, 0.7);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Tout ce qui suit est délibérément posé dans les couches `base` et
+   `components` de Tailwind (et non en CSS "nu"), pour que les utilitaires
+   appliqués via `className` (ex: `rounded-none`, `border-x-0` sur le
+   header) puissent toujours les surcharger — une règle hors couche gagne
+   toujours sur une règle en couche, quel que soit l'ordre. */
+@layer base {
+  * {
+    border-color: var(--color-verre-bord);
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background: var(--color-nuit);
+    color: var(--color-ivoire);
+    font-family: var(--font-corps);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--color-ambre-tamise);
+    color: var(--color-nuit);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ambre-clair);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* Carte de verre — base commune. La variante `.glass--photo` porte le
+     voile le plus opaque : à utiliser dès qu'une carte peut se trouver
+     au-dessus d'une photo ou d'une vidéo. */
+  .glass {
+    position: relative;
+    border: 1px solid var(--color-verre-bord);
+    border-radius: 1.25rem;
+    background: var(--color-verre);
+  }
+
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--voile-carte-unie);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 0;
+  }
+
+  .glass--photo::before {
+    background: var(--voile-carte-photo);
+  }
+
+  .glass > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Dégradation de performance : si `backdrop-filter` n'est pas supporté,
+     ou si l'appareil est signalé comme peu performant (classe posée en JS),
+     on retombe sur un voile opaque sans flou plutôt que de forcer le calcul. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass::before {
+      backdrop-filter: none;
+      background: var(--color-nuit-surface);
+    }
+  }
+
+  .perf-reduite .glass::before {
+    backdrop-filter: none;
+    background: var(--color-nuit-surface);
+  }
+
+  .cursor-none-fine {
+    cursor: none;
+  }
+
+  .text-outline-ambre {
+    -webkit-text-stroke: 1px var(--color-ambre-tamise);
+    color: transparent;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
